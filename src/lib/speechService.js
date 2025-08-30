@@ -42,8 +42,28 @@ class SpeechService {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
+  // Detect Safari browser
+  isSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  }
+
   // Get supported audio mime type
   getSupportedMimeType() {
+    // For Safari, try minimal options first
+    if (this.isSafari()) {
+      const safariTypes = ['audio/mp4', 'audio/wav', ''];
+      for (const type of safariTypes) {
+        try {
+          if (!type || MediaRecorder.isTypeSupported(type)) {
+            console.log(`🍎 Safari using audio format: ${type || 'default'}`);
+            return type;
+          }
+        } catch (e) {
+          console.warn(`Safari format test failed for ${type}:`, e);
+        }
+      }
+    }
+
     const types = [
       // Safari/Apple preferred formats
       'audio/mp4',
@@ -67,6 +87,110 @@ class SpeechService {
     return '';
   }
 
+  // Safari-specific Web Audio API recording
+  async startSafariRecording() {
+    try {
+      console.log('🍎 Using Safari Web Audio API fallback');
+      
+      this.stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+          channelCount: 1
+        } 
+      });
+
+      // Create Web Audio context
+      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      this.source = this.audioContext.createMediaStreamSource(this.stream);
+      
+      // Create script processor for recording
+      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      this.audioChunks = [];
+      
+      this.processor.onaudioprocess = (event) => {
+        const inputData = event.inputBuffer.getChannelData(0);
+        this.audioChunks.push(new Float32Array(inputData));
+      };
+      
+      this.source.connect(this.processor);
+      this.processor.connect(this.audioContext.destination);
+      
+      this.isRecording = true;
+      
+      if (this.onRecordingStateChange) {
+        this.onRecordingStateChange(true);
+      }
+
+      console.log('🍎 Safari recording started with Web Audio API');
+      return true;
+    } catch (error) {
+      console.error('Safari recording error:', error);
+      this.handleError(`Safari opname fout: ${error.message}`);
+      return false;
+    }
+  }
+
+  // Stop Safari recording
+  stopSafariRecording() {
+    if (this.processor) {
+      this.processor.disconnect();
+      this.source.disconnect();
+      this.audioContext.close();
+      
+      // Convert Float32Array chunks to WAV
+      const audioBlob = this.createWavBlob(this.audioChunks, 44100);
+      this.processAudio(audioBlob);
+    }
+    
+    this.isRecording = false;
+    if (this.onRecordingStateChange) {
+      this.onRecordingStateChange(false);
+    }
+  }
+
+  // Create WAV blob from Float32Array chunks
+  createWavBlob(chunks, sampleRate) {
+    const length = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const buffer = new ArrayBuffer(44 + length * 2);
+    const view = new DataView(buffer);
+    
+    // WAV header
+    const writeString = (offset, string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length * 2, true);
+    
+    // Convert float samples to 16-bit PCM
+    let offset = 44;
+    for (const chunk of chunks) {
+      for (let i = 0; i < chunk.length; i++) {
+        const sample = Math.max(-1, Math.min(1, chunk[i]));
+        view.setInt16(offset, sample * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    
+    return new Blob([buffer], { type: 'audio/wav' });
+  }
+
   // Start recording audio
   async startRecording() {
     if (!this.isSupported()) {
@@ -77,6 +201,11 @@ class SpeechService {
     if (!this.apiKey) {
       this.handleError('OpenAI API key is niet geconfigureerd');
       return false;
+    }
+
+    // Use Safari-specific recording if on Safari
+    if (this.isSafari()) {
+      return await this.startSafariRecording();
     }
 
     try {
@@ -144,19 +273,29 @@ class SpeechService {
 
   // Stop recording audio
   stopRecording() {
-    if (this.mediaRecorder && this.isRecording) {
-      this.mediaRecorder.stop();
-      this.isRecording = false;
-      
-      // Stop all tracks to release microphone
-      if (this.stream) {
-        this.stream.getTracks().forEach(track => track.stop());
-        this.stream = null;
-      }
+    if (!this.isRecording) {
+      return;
+    }
 
-      if (this.onRecordingStateChange) {
-        this.onRecordingStateChange(false);
-      }
+    // Use Safari-specific stop if on Safari
+    if (this.isSafari() && this.processor) {
+      this.stopSafariRecording();
+      return;
+    }
+
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop();
+    }
+    
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+    
+    this.isRecording = false;
+    
+    if (this.onRecordingStateChange) {
+      this.onRecordingStateChange(false);
     }
   }
 
