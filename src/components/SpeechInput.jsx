@@ -225,6 +225,7 @@ const SpeechInput = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button
+                type="button"
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isProcessing}
                 variant={isRecording ? "destructive" : "default"}
@@ -256,6 +257,7 @@ const SpeechInput = ({
 
             <div className="flex gap-2">
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowVocabularyManager(true)}
@@ -263,15 +265,6 @@ const SpeechInput = ({
               >
                 <BookOpen className="h-4 w-4" />
                 Woordenboek
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowApiKeyInput(true)}
-                className="gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                API Key
               </Button>
             </div>
           </div>
@@ -333,6 +326,7 @@ const SpeechInput = ({
                   <span className="text-sm font-medium">Suggesties voor Verbetering</span>
                 </div>
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSuggestions(!showSuggestions)}
@@ -361,6 +355,7 @@ const SpeechInput = ({
                           )}
                         </div>
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
                           onClick={() => applySuggestion(suggestion.original, suggestion.suggestions[0].term)}
@@ -395,6 +390,7 @@ const SpeechInput = ({
                         {formatAudioSize(audioData.size)}
                       </span>
                       <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={isPlaying ? stopAudio : playAudio}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Camera,
   Upload,
@@ -181,7 +181,7 @@ const OCRInput = ({
           <div className="bg-white rounded-lg p-4 max-w-lg w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Foto Maken</h3>
-              <Button variant="ghost" size="sm" onClick={stopCamera}>
+              <Button type="button" variant="ghost" size="sm" onClick={stopCamera}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -197,7 +197,7 @@ const OCRInput = ({
             </div>
             
             <div className="flex justify-center mt-4">
-              <Button onClick={capturePhoto} className="gap-2">
+              <Button type="button" onClick={capturePhoto} className="gap-2">
                 <Camera className="h-4 w-4" />
                 Foto Maken
               </Button>
@@ -222,6 +222,7 @@ const OCRInput = ({
           <div className="space-y-4">
             <div className="flex gap-3">
               <Button
+                type="button"
                 onClick={startCamera}
                 variant="default"
                 className="flex-1 gap-2"
@@ -232,6 +233,7 @@ const OCRInput = ({
               </Button>
               
               <Button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
                 variant="outline"
                 className="flex-1 gap-2"
@@ -310,6 +312,7 @@ const OCRInput = ({
                 </div>
                 <div className="flex gap-2">
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={reprocessImage}
@@ -320,6 +323,7 @@ const OCRInput = ({
                     Opnieuw Scannen
                   </Button>
                   <Button
+                    type="button"
                     variant="ghost"
                     size="sm"
                     onClick={clearData}
@@ -431,6 +435,7 @@ const OCRInput = ({
               {/* Raw Text Toggle */}
               <div className="border-t pt-3">
                 <Button
+                  type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowRawText(!showRawText)}
@@ -452,6 +457,7 @@ const OCRInput = ({
               {/* Action Buttons */}
               <div className="flex gap-2 pt-2">
                 <Button
+                  type="button"
                   onClick={() => {
                     if (onDataExtracted) {
                       const formatted = ocrService.formatExtractedData(extractedData.extractedData);
@@ -464,6 +470,7 @@ const OCRInput = ({
                   Gegevens Gebruiken
                 </Button>
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={clearData}
