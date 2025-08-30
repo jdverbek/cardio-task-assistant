@@ -35,9 +35,7 @@ const SpeechInput = ({
   const [audioData, setAudioData] = useState(null);
   const [error, setError] = useState('');
   const [apiKeyConfigured, setApiKeyConfigured] = useState(false);
-  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [showVocabularyManager, setShowVocabularyManager] = useState(false);
-  const [tempApiKey, setTempApiKey] = useState('');
   const [appliedCorrections, setAppliedCorrections] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -45,12 +43,9 @@ const SpeechInput = ({
   const recordingIntervalRef = useRef(null);
 
   useEffect(() => {
-    // Initialize services
-    const storedApiKey = localStorage.getItem('openai_api_key');
-    if (storedApiKey) {
-      speechService.initialize(storedApiKey);
-      setApiKeyConfigured(true);
-    }
+    // Initialize services - API key now automatic from environment
+    const hasApiKey = speechService.initialize();
+    setApiKeyConfigured(hasApiKey);
 
     // Initialize vocabulary service
     vocabularyService.initialize();
@@ -110,7 +105,7 @@ const SpeechInput = ({
 
   const startRecording = async () => {
     if (!apiKeyConfigured) {
-      setShowApiKeyInput(true);
+      setError('OpenAI API key is niet geconfigureerd in environment variables');
       return;
     }
 
@@ -148,16 +143,6 @@ const SpeechInput = ({
 
   const stopAudio = () => {
     audioPlayer.stop();
-  };
-
-  const saveApiKey = () => {
-    if (tempApiKey.trim()) {
-      localStorage.setItem('openai_api_key', tempApiKey.trim());
-      speechService.initialize(tempApiKey.trim());
-      setApiKeyConfigured(true);
-      setShowApiKeyInput(false);
-      setTempApiKey('');
-    }
   };
 
   const applySuggestion = async (original, suggested) => {
@@ -208,45 +193,24 @@ const SpeechInput = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  if (showApiKeyInput) {
+  if (!apiKeyConfigured) {
     return (
       <Card className={className}>
         <CardContent className="p-4">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-amber-600">
-              <Settings className="h-4 w-4" />
-              <span className="text-sm font-medium">OpenAI API Key Configuratie</span>
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">Spraakherkenning Niet Beschikbaar</span>
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm text-gray-600">
-                Voer je OpenAI API key in voor spraakherkenning:
-              </label>
-              <input
-                type="password"
-                value={tempApiKey}
-                onChange={(e) => setTempApiKey(e.target.value)}
-                placeholder="sk-proj-..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-              />
+              <p className="text-sm text-gray-600">
+                OpenAI API key is niet geconfigureerd in de environment variables.
+              </p>
+              <p className="text-xs text-gray-500">
+                Neem contact op met de beheerder om VITE_OPENAI_API_KEY in te stellen.
+              </p>
             </div>
-            
-            <div className="flex gap-2">
-              <Button onClick={saveApiKey} size="sm" disabled={!tempApiKey.trim()}>
-                Opslaan
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowApiKeyInput(false)}
-              >
-                Annuleren
-              </Button>
-            </div>
-            
-            <p className="text-xs text-gray-500">
-              Je API key wordt lokaal opgeslagen en niet gedeeld.
-            </p>
           </div>
         </CardContent>
       </Card>

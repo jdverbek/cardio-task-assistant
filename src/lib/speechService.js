@@ -5,15 +5,29 @@ class SpeechService {
     this.audioChunks = [];
     this.isRecording = false;
     this.stream = null;
-    this.apiKey = null;
+    // Automatically get API key from environment
+    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || null;
     this.onTranscriptionUpdate = null;
     this.onRecordingStateChange = null;
     this.onError = null;
+    
+    // Log API key status for debugging
+    if (this.apiKey) {
+      console.log('✅ OpenAI API key loaded from environment');
+    } else {
+      console.warn('⚠️ OpenAI API key not found in environment variables');
+    }
   }
 
-  // Initialize the service with API key
-  initialize(apiKey) {
-    this.apiKey = apiKey;
+  // Initialize the service (API key now automatic)
+  initialize() {
+    // API key is now automatically loaded from environment
+    return !!this.apiKey;
+  }
+
+  // Get API key status
+  hasApiKey() {
+    return !!this.apiKey;
   }
 
   // Set callback functions
