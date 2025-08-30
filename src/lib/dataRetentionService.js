@@ -1,8 +1,22 @@
 // Data Retention Service for GDPR Compliance
 // Automatically deletes data after 72 hours
 
-import { taskDB } from './database.js';
+import Dexie from 'dexie';
 import { vocabularyService } from './vocabularyService.js';
+
+// Create database instance for task management
+class TaskDatabase extends Dexie {
+  constructor() {
+    super('TaskManagerDB');
+    
+    this.version(1).stores({
+      tasks: '++id, title, description, type, status, priority, createdAt, updatedAt, dueDate, patientReference, patientId, birthDate, notes, tags',
+      settings: '++id, key, value'
+    });
+  }
+}
+
+const taskDB = new TaskDatabase();
 
 class DataRetentionService {
   constructor() {
