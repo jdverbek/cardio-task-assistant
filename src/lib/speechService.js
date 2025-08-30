@@ -42,6 +42,31 @@ class SpeechService {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
+  // Get supported audio mime type
+  getSupportedMimeType() {
+    const types = [
+      // Safari/Apple preferred formats
+      'audio/mp4',
+      'audio/aac',
+      'audio/x-m4a',
+      // Standard web formats
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/wav'
+    ];
+    
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        console.log(`✅ Using supported audio format: ${type}`);
+        return type;
+      }
+    }
+    
+    console.warn('⚠️ No supported audio format found, using default');
+    return '';
+  }
+
   // Start recording audio
   async startRecording() {
     if (!this.isSupported()) {
@@ -55,19 +80,30 @@ class SpeechService {
     }
 
     try {
-      // Request microphone access
+      // Request microphone access with Safari-friendly settings
       this.stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 44100
+          autoGainControl: true,
+          sampleRate: 44100,
+          channelCount: 1
         } 
       });
 
-      // Create MediaRecorder
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Get supported mime type
+      const mimeType = this.getSupportedMimeType();
+      console.log(`🎵 Attempting to use audio format: ${mimeType || 'default'}`);
+      
+      // Create MediaRecorder with fallback
+      const options = mimeType ? { mimeType } : {};
+      
+      // Add additional Safari-specific options
+      if (mimeType.includes('mp4') || mimeType.includes('aac')) {
+        options.audioBitsPerSecond = 128000;
+      }
+      
+      this.mediaRecorder = new MediaRecorder(this.stream, options);
 
       this.audioChunks = [];
 
@@ -75,25 +111,32 @@ class SpeechService {
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
+          console.log(`📊 Audio chunk received: ${event.data.size} bytes`);
         }
       };
 
       // Handle recording stop
       this.mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        console.log(`🎵 Recording stopped, processing ${this.audioChunks.length} chunks`);
+        const audioBlob = new Blob(this.audioChunks, { 
+          type: mimeType || 'audio/webm' 
+        });
+        console.log(`📁 Audio blob created: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
         await this.processAudio(audioBlob);
       };
 
       // Start recording
-      this.mediaRecorder.start();
+      this.mediaRecorder.start(1000); // Collect data every second
       this.isRecording = true;
       
       if (this.onRecordingStateChange) {
         this.onRecordingStateChange(true);
       }
 
+      console.log('🎤 Recording started successfully');
       return true;
     } catch (error) {
+      console.error('Recording error:', error);
       this.handleError(`Fout bij starten opname: ${error.message}`);
       return false;
     }
