@@ -17,7 +17,10 @@ rm -rf dist/ node_modules/.vite/
 
 # Install Node.js dependencies
 echo "📦 Installing Node.js dependencies..."
-npm install --verbose
+npm install --verbose || {
+    echo "⚠️  npm install failed, trying with --legacy-peer-deps..."
+    npm install --legacy-peer-deps --verbose
+}
 
 # Check if dependencies installed correctly
 echo "📋 Checking key dependencies..."
