@@ -31,6 +31,7 @@ const OCRInput = ({
   const [error, setError] = useState('');
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState(null);
+  const [videoReady, setVideoReady] = useState(false);
   
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -51,22 +52,40 @@ const OCRInput = ({
   // Start camera for photo capture
   const startCamera = async () => {
     try {
+      console.log('🍎 Starting camera...');
+      
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use back camera if available
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 }
         }
       });
       
+      console.log('📹 Camera stream obtained:', mediaStream);
       setStream(mediaStream);
       setShowCamera(true);
       
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      // Wait for video element to be available
+      setTimeout(() => {
+        if (videoRef.current) {
+          console.log('📺 Setting video source...');
+          videoRef.current.srcObject = mediaStream;
+          
+          // Ensure video plays on Safari
+          videoRef.current.onloadedmetadata = () => {
+            console.log('📺 Video metadata loaded, starting playback');
+            setVideoReady(true);
+            videoRef.current.play().catch(e => {
+              console.error('Video play error:', e);
+            });
+          };
+        }
+      }, 100);
+      
     } catch (error) {
-      setError('Kan camera niet openen. Controleer de permissies.');
+      console.error('Camera error:', error);
+      setError(`Kan camera niet openen: ${error.message}. Controleer de permissies.`);
     }
   };
 
@@ -77,19 +96,35 @@ const OCRInput = ({
       setStream(null);
     }
     setShowCamera(false);
+    setVideoReady(false);
   };
 
   // Capture photo from camera
   const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current) {
+      console.error('Video or canvas not available');
+      setError('Camera niet gereed voor foto');
+      return;
+    }
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    
+    // Check if video is ready
+    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+      console.error('Video not ready');
+      setError('Video nog niet gereed, probeer opnieuw');
+      return;
+    }
+    
+    console.log('📸 Capturing photo...');
     const context = canvas.getContext('2d');
 
     // Set canvas size to video size
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth || video.clientWidth;
+    canvas.height = video.videoHeight || video.clientHeight;
+    
+    console.log(`📐 Canvas size: ${canvas.width}x${canvas.height}`);
 
     // Draw video frame to canvas
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -97,6 +132,7 @@ const OCRInput = ({
     // Convert to blob and process
     canvas.toBlob(async (blob) => {
       if (blob) {
+        console.log(`📁 Photo captured: ${blob.size} bytes`);
         setCapturedImage(URL.createObjectURL(blob));
         stopCamera();
         await processImage(blob);
@@ -104,6 +140,9 @@ const OCRInput = ({
         if (onImageCaptured) {
           onImageCaptured(blob);
         }
+      } else {
+        console.error('Failed to create blob');
+        setError('Foto maken mislukt, probeer opnieuw');
       }
     }, 'image/jpeg', 0.9);
   };
@@ -186,14 +225,34 @@ const OCRInput = ({
               </Button>
             </div>
             
-            <div className="relative">
+            <div className="relative bg-black rounded-lg overflow-hidden">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="w-full rounded-lg"
+                style={{ minHeight: '300px' }}
+                onLoadedMetadata={() => {
+                  console.log('📺 Video ready for capture');
+                  setVideoReady(true);
+                }}
+                onError={(e) => {
+                  console.error('Video error:', e);
+                  setError('Video weergave probleem');
+                }}
               />
               <canvas ref={canvasRef} className="hidden" />
+              
+              {/* Loading overlay if video not ready */}
+              {!videoReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                    <p>Camera wordt geladen...</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex justify-center mt-4">
