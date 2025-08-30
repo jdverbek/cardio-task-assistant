@@ -1,5 +1,6 @@
 import os
 import mimetypes
+import json
 from wsgiref.simple_server import make_server
 
 def application(environ, start_response):
@@ -24,13 +25,49 @@ def application(environ, start_response):
         start_response(status, headers)
         return [response_body]
     
+    # Debug endpoint to check file system
+    if path == 'debug':
+        dist_folder = os.path.join(os.path.dirname(__file__), 'dist')
+        debug_info = {
+            'working_directory': os.getcwd(),
+            'script_directory': os.path.dirname(__file__),
+            'dist_folder_path': dist_folder,
+            'dist_exists': os.path.exists(dist_folder),
+            'dist_contents': [],
+            'assets_contents': []
+        }
+        
+        if os.path.exists(dist_folder):
+            try:
+                debug_info['dist_contents'] = os.listdir(dist_folder)
+                assets_folder = os.path.join(dist_folder, 'assets')
+                if os.path.exists(assets_folder):
+                    debug_info['assets_contents'] = os.listdir(assets_folder)
+            except Exception as e:
+                debug_info['error'] = str(e)
+        
+        response_body = json.dumps(debug_info, indent=2).encode('utf-8')
+        status = '200 OK'
+        headers = [('Content-Type', 'application/json')]
+        start_response(status, headers)
+        return [response_body]
+    
     # Build file path
     dist_folder = os.path.join(os.path.dirname(__file__), 'dist')
     file_path = os.path.join(dist_folder, path)
     
-    print(f"Request: {path} -> {file_path}")
+    print(f"Request: {path}")
+    print(f"Script dir: {os.path.dirname(__file__)}")
+    print(f"Dist folder: {dist_folder}")
+    print(f"File path: {file_path}")
     print(f"Dist folder exists: {os.path.exists(dist_folder)}")
     print(f"File exists: {os.path.exists(file_path)}")
+    
+    if os.path.exists(dist_folder):
+        print(f"Dist contents: {os.listdir(dist_folder)}")
+        assets_folder = os.path.join(dist_folder, 'assets')
+        if os.path.exists(assets_folder):
+            print(f"Assets contents: {os.listdir(assets_folder)}")
     
     if os.path.exists(file_path) and os.path.isfile(file_path):
         # Determine MIME type
@@ -49,6 +86,8 @@ def application(environ, start_response):
             with open(file_path, 'rb') as f:
                 content = f.read()
             
+            print(f"Successfully served: {file_path} ({len(content)} bytes)")
+            
             status = '200 OK'
             headers = [
                 ('Content-Type', mime_type),
@@ -60,6 +99,8 @@ def application(environ, start_response):
         except Exception as e:
             print(f"Error reading file {file_path}: {e}")
     
+    print(f"File not found: {file_path}")
+    
     # File not found - serve index.html for SPA routing (unless it's an asset)
     if not path.startswith('assets/') and '.' not in path.split('/')[-1]:
         index_path = os.path.join(dist_folder, 'index.html')
@@ -67,6 +108,8 @@ def application(environ, start_response):
             try:
                 with open(index_path, 'rb') as f:
                     content = f.read()
+                
+                print(f"Serving index.html for SPA route: {path}")
                 
                 status = '200 OK'
                 headers = [
@@ -79,6 +122,7 @@ def application(environ, start_response):
                 print(f"Error reading index.html: {e}")
     
     # 404 Not Found
+    print(f"Returning 404 for: {path}")
     status = '404 Not Found'
     headers = [('Content-Type', 'text/plain')]
     start_response(status, headers)
