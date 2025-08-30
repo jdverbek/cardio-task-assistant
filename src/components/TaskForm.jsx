@@ -34,7 +34,8 @@ const TaskForm = ({
   onClose, 
   onSubmit, 
   task = null, 
-  isEditing = false 
+  isEditing = false,
+  fullPage = false
 }) => {
   const [formData, setFormData] = useState({
     type: TaskType.GENERAL,

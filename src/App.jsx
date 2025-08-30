@@ -11,15 +11,14 @@ import {
 import { Button } from '@/components/ui/button.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import TaskForm from './components/TaskForm.jsx';
+import TaskFormFullPage from './components/TaskFormFullPage.jsx';
 import VocabularyManager from './components/VocabularyManager.jsx';
 import DataRetentionStatus from './components/DataRetentionStatus.jsx';
 import { dataRetentionService } from './lib/dataRetentionService.js';
 import './App.css';
 
 function App() {
-  const [showTaskForm, setShowTaskForm] = useState(false);
-  const [showVocabularyManager, setShowVocabularyManager] = useState(false);
-  const [showDataRetention, setShowDataRetention] = useState(false);
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'new-task', 'vocabulary', 'gdpr'
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
 
@@ -44,22 +43,24 @@ function App() {
 
   const handleEditTask = (task) => {
     setEditingTask(task);
-    setShowTaskForm(true);
+    setCurrentView('new-task');
   };
 
   const handleCloseTaskForm = () => {
-    setShowTaskForm(false);
     setEditingTask(null);
+    setCurrentView('dashboard');
+  };
+
+  const handleTaskSubmit = (taskData) => {
+    // Task submission logic here
+    console.log('Task submitted:', taskData);
+    setEditingTask(null);
+    setCurrentView('dashboard');
   };
 
   const handleNewTask = () => {
     setEditingTask(null);
-    setShowTaskForm(true);
-  };
-
-  const handleTaskSubmit = () => {
-    setShowTaskForm(false);
-    setEditingTask(null);
+    setCurrentView('new-task');
   };
 
   return (
@@ -87,7 +88,7 @@ function App() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowVocabularyManager(true)}
+                onClick={() => setCurrentView('vocabulary')}
                 className="gap-2"
               >
                 <BookOpen className="h-4 w-4" />
@@ -97,7 +98,7 @@ function App() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowDataRetention(true)}
+                onClick={() => setCurrentView('gdpr')}
                 className="gap-2"
               >
                 <Shield className="h-4 w-4" />
@@ -206,7 +207,82 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Dashboard onEditTask={handleEditTask} />
+        {currentView === 'dashboard' && (
+          <Dashboard onEditTask={handleEditTask} />
+        )}
+        
+        {currentView === 'new-task' && (
+          <div className="space-y-6">
+            {/* Back Button */}
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCurrentView('dashboard')}
+                className="gap-2"
+              >
+                ← Terug naar Dashboard
+              </Button>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingTask ? 'Taak Bewerken' : 'Nieuwe Taak Aanmaken'}
+              </h2>
+            </div>
+            
+            {/* Full Page Task Form */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <TaskFormFullPage
+                onClose={handleCloseTaskForm}
+                onSubmit={handleTaskSubmit}
+                task={editingTask}
+                isEditing={!!editingTask}
+              />
+            </div>
+          </div>
+        )}
+        
+        {currentView === 'vocabulary' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCurrentView('dashboard')}
+                className="gap-2"
+              >
+                ← Terug naar Dashboard
+              </Button>
+              <h2 className="text-2xl font-bold text-gray-900">Woordenboek Beheer</h2>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <VocabularyManager
+                onClose={() => setCurrentView('dashboard')}
+              />
+            </div>
+          </div>
+        )}
+        
+        {currentView === 'gdpr' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setCurrentView('dashboard')}
+                className="gap-2"
+              >
+                ← Terug naar Dashboard
+              </Button>
+              <h2 className="text-2xl font-bold text-gray-900">GDPR & Privacy</h2>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <DataRetentionStatus
+                onClose={() => setCurrentView('dashboard')}
+              />
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -233,25 +309,6 @@ function App() {
           </div>
         </div>
       </footer>
-
-      {/* Modals */}
-      <TaskForm
-        isOpen={showTaskForm}
-        onClose={handleCloseTaskForm}
-        onSubmit={handleTaskSubmit}
-        task={editingTask}
-        isEditing={!!editingTask}
-      />
-
-      <VocabularyManager
-        isOpen={showVocabularyManager}
-        onClose={() => setShowVocabularyManager(false)}
-      />
-
-      <DataRetentionStatus
-        isOpen={showDataRetention}
-        onClose={() => setShowDataRetention(false)}
-      />
     </div>
   );
 }
