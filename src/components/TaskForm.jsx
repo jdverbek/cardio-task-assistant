@@ -19,6 +19,8 @@ import {
   DialogTitle
 } from '@/components/ui/dialog.jsx';
 import { Badge } from '@/components/ui/badge.jsx';
+import SpeechInput from './SpeechInput.jsx';
+import OCRInput from './OCRInput.jsx';
 import { 
   TaskType, 
   TaskTypeConfig, 
@@ -144,7 +146,7 @@ const TaskForm = ({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Edit Task' : 'Create New Task'}
+            {isEditing ? 'Taak Bewerken' : 'Nieuwe Taak Aanmaken'}
           </DialogTitle>
         </DialogHeader>
 
@@ -152,7 +154,7 @@ const TaskForm = ({
           {/* Quick Templates (only for new tasks) */}
           {!isEditing && (
             <div className="space-y-3">
-              <Label>Quick Templates</Label>
+              <Label>Snelle Sjablonen</Label>
               <div className="grid grid-cols-2 gap-2">
                 {defaultTemplates.slice(0, 6).map((template) => (
                   <Button
@@ -177,7 +179,7 @@ const TaskForm = ({
 
           {/* Task Type */}
           <div className="space-y-2">
-            <Label htmlFor="type">Task Type</Label>
+            <Label htmlFor="type">Taak Type</Label>
             <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
               <SelectTrigger>
                 <SelectValue />
@@ -195,35 +197,51 @@ const TaskForm = ({
             </Select>
           </div>
 
-          {/* Title */}
+          {/* Title with Speech Input */}
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => handleInputChange('title', e.target.value)}
-              placeholder="Enter task title..."
-              autoFocus
-            />
+            <Label htmlFor="title">Titel *</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => handleInputChange('title', e.target.value)}
+                placeholder="Voer taak titel in..."
+                autoFocus
+                className="flex-1"
+              />
+              <SpeechInput
+                onTranscription={(text) => handleInputChange('title', text)}
+                placeholder="Spreek de taak titel in..."
+              />
+            </div>
           </div>
 
-          {/* Description */}
+          {/* Description with Speech Input */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Add details about the task..."
-              rows={3}
-            />
+            <Label htmlFor="description">Beschrijving</Label>
+            <div className="space-y-2">
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Voeg details toe over de taak..."
+                rows={3}
+              />
+              <div className="flex justify-end">
+                <SpeechInput
+                  onTranscription={(text) => handleInputChange('description', formData.description + (formData.description ? ' ' : '') + text)}
+                  placeholder="Spreek de beschrijving in..."
+                  multiline={true}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Priority and Due Date Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Priority */}
             <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
+              <Label htmlFor="priority">Prioriteit</Label>
               <Select value={formData.priority} onValueChange={(value) => handleInputChange('priority', value)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -243,7 +261,7 @@ const TaskForm = ({
 
             {/* Due Date */}
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Due Date</Label>
+              <Label htmlFor="dueDate">Vervaldatum</Label>
               <div className="flex space-x-2">
                 <Input
                   id="dueDate"
@@ -262,18 +280,33 @@ const TaskForm = ({
             </div>
           </div>
 
-          {/* Patient Reference */}
+          {/* Patient Reference with Speech and OCR */}
           <div className="space-y-2">
-            <Label htmlFor="patientRef">Patient Reference</Label>
-            <Input
-              id="patientRef"
-              value={formData.patientRef}
-              onChange={(e) => handleInputChange('patientRef', e.target.value)}
-              placeholder="Patient ID, room number, etc. (no personal info)"
-            />
+            <Label htmlFor="patientRef">Patiënt Referentie</Label>
+            <div className="flex space-x-2">
+              <Input
+                id="patientRef"
+                value={formData.patientRef}
+                onChange={(e) => handleInputChange('patientRef', e.target.value)}
+                placeholder="Patiënt ID, kamernummer, etc. (geen persoonlijke info)"
+                className="flex-1"
+              />
+              <SpeechInput
+                onTranscription={(text) => handleInputChange('patientRef', text)}
+                placeholder="Spreek patiënt referentie in..."
+              />
+              <OCRInput
+                onExtraction={(data) => {
+                  if (data.patientId) {
+                    handleInputChange('patientRef', data.patientId);
+                  }
+                }}
+                placeholder="Scan patiënt ID..."
+              />
+            </div>
           </div>
 
-          {/* Tags */}
+          {/* Tags with Speech Input */}
           <div className="space-y-2">
             <Label htmlFor="tags">Tags</Label>
             <div className="flex space-x-2">
@@ -281,16 +314,21 @@ const TaskForm = ({
                 id="tags"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add a tag..."
+                placeholder="Voeg een tag toe..."
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     handleAddTag();
                   }
                 }}
+                className="flex-1"
+              />
+              <SpeechInput
+                onTranscription={(text) => setTagInput(text)}
+                placeholder="Spreek tag in..."
               />
               <Button type="button" onClick={handleAddTag} size="sm">
-                Add
+                Toevoegen
               </Button>
             </div>
             
@@ -315,10 +353,10 @@ const TaskForm = ({
           {/* Form Actions */}
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              Annuleren
             </Button>
             <Button type="submit" disabled={!isFormValid}>
-              {isEditing ? 'Update Task' : 'Create Task'}
+              {isEditing ? 'Taak Bijwerken' : 'Taak Aanmaken'}
             </Button>
           </div>
         </form>
