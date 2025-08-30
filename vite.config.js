@@ -12,22 +12,21 @@ export default defineConfig({
     },
   },
   build: {
-    // Optimize for memory usage
-    chunkSizeWarningLimit: 1000,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'esbuild',
+    // Simplified build - no manual chunks to avoid complexity
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Split large dependencies into separate chunks
-          'react-vendor': ['react', 'react-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
-          'chart-vendor': ['recharts'],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'ocr-vendor': ['tesseract.js'],
-          'db-vendor': ['dexie']
-        }
+        // Let Vite handle chunking automatically
+        manualChunks: undefined
       }
-    },
-    // Use esbuild for faster, less memory-intensive minification
-    minify: 'esbuild'
+    }
+  },
+  server: {
+    port: 5173,
+    host: true
   }
 })
+

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 
 echo "🚀 Building Cardiologie Taakbeheer..."
 
@@ -8,25 +9,53 @@ echo "Node version: $(node --version)"
 echo "NPM version: $(npm --version)"
 echo "Python version: $(python --version)"
 echo "Working directory: $(pwd)"
+echo "Available space: $(df -h . | tail -1)"
 
-# Install Node.js dependencies and build React app
+# Clean any previous builds
+echo "🧹 Cleaning previous builds..."
+rm -rf dist/ node_modules/.vite/
+
+# Install Node.js dependencies
 echo "📦 Installing Node.js dependencies..."
-npm install
+npm install --verbose
 
+# Check if dependencies installed correctly
+echo "📋 Checking key dependencies..."
+npm list react vite @vitejs/plugin-react || echo "Some dependencies missing but continuing..."
+
+# Build React application with verbose output
 echo "🔨 Building React application..."
-npm run build
+NODE_OPTIONS="--max-old-space-size=1024" npm run build -- --mode production
 
-# Check build output
+# Verify build output
+echo "📁 Verifying build output..."
+if [ ! -d "dist" ]; then
+    echo "❌ ERROR: dist folder not created!"
+    exit 1
+fi
+
 echo "📁 Build output:"
 ls -la dist/
-echo "📁 Assets folder:"
-ls -la dist/assets/
-echo "📄 Index.html content:"
-head -10 dist/index.html
+echo "📄 Index.html size: $(wc -c < dist/index.html) bytes"
+
+if [ -d "dist/assets" ]; then
+    echo "📁 Assets folder:"
+    ls -la dist/assets/
+    echo "📊 Assets count: $(ls -1 dist/assets/ | wc -l)"
+else
+    echo "⚠️  WARNING: No assets folder created!"
+    echo "📄 Index.html content preview:"
+    head -20 dist/index.html
+fi
 
 echo "🐍 Installing Python dependencies..."
 pip install -r requirements.txt
 
-echo "✅ Build complete! Simple server will serve React app from /dist"
+echo "✅ Build complete!"
+if [ -d "dist/assets" ] && [ "$(ls -1 dist/assets/ | wc -l)" -gt 0 ]; then
+    echo "🎉 SUCCESS: React app built with assets!"
+else
+    echo "⚠️  WARNING: React app built but no assets generated!"
+fi
 echo "🏥 Cardiologie Taakbeheer ready for deployment!"
 
