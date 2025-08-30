@@ -151,22 +151,14 @@ const TaskFormFullPage = ({
         </Select>
       </div>
 
-      {/* Title with Speech Input */}
+      {/* Title */}
       <div className="space-y-2">
         <Label htmlFor="title">Titel *</Label>
-        <div className="flex gap-2">
-          <Input
-            id="title"
-            value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            placeholder="Voer taak titel in..."
-            className="flex-1"
-          />
-        </div>
-        <SpeechInput
-          onTranscription={(text) => handleInputChange('title', text)}
-          placeholder="Spreek de taak titel"
-          className="mt-2"
+        <Input
+          id="title"
+          value={formData.title}
+          onChange={(e) => handleInputChange('title', e.target.value)}
+          placeholder="Voer taak titel in..."
         />
       </div>
 
@@ -190,16 +182,12 @@ const TaskFormFullPage = ({
       {/* Patient Reference with OCR */}
       <div className="space-y-2">
         <Label htmlFor="patientRef">Patiënt Referentie</Label>
-        <Input
-          id="patientRef"
-          value={formData.patientRef}
-          onChange={(e) => handleInputChange('patientRef', e.target.value)}
-          placeholder="Patiënt ID, kamer nummer, etc."
-        />
         <div className="flex gap-2">
-          <SpeechInput
-            onTranscription={(text) => handleInputChange('patientRef', text)}
-            placeholder="Spreek patiënt referentie"
+          <Input
+            id="patientRef"
+            value={formData.patientRef}
+            onChange={(e) => handleInputChange('patientRef', e.target.value)}
+            placeholder="Patiënt ID, kamer nummer, etc."
             className="flex-1"
           />
           <OCRInput
@@ -270,14 +258,6 @@ const TaskFormFullPage = ({
           value={formData.tags.join(', ')}
           onChange={(e) => handleInputChange('tags', e.target.value.split(',').map(tag => tag.trim()).filter(Boolean))}
           placeholder="Voer tags in, gescheiden door komma's"
-        />
-        <SpeechInput
-          onTranscription={(text) => {
-            const newTags = text.split(',').map(tag => tag.trim()).filter(Boolean);
-            handleInputChange('tags', newTags);
-          }}
-          placeholder="Spreek tags in"
-          className="mt-2"
         />
         {formData.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
